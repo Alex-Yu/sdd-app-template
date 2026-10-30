@@ -2,7 +2,7 @@
 
 Status: Unconfigured — this template has no application runtime or test runner.
 
-The developer owns installation, configuration, and command validation through the bootstrap tasks. After selecting the stack, record intended commands; during implementation, replace each applicable entry with exact commands, working directory, prerequisites, and required environment variables (names only). Mark inapplicable entries with a reason. Never report an unconfigured check as passing.
+Maintain this record under the [developer setup procedure](team/software-engineer.md#environment-setup).
 
 | Operation | Command | Working directory / notes |
 | --- | --- | --- |

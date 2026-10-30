@@ -2,74 +2,79 @@
 
 ## Sources of truth
 
-The product plan defines intended behavior; architecture and decision records define agreed constraints. Tasks describe scoped changes and link to these sources. `_docs/tasks.md` identifies the single authoritative backlog. If these sources conflict, resolve the conflict before dependent implementation. An implementation is not evidence that a requirement changed.
+The [product plan](plan.md) defines intended behavior; [architecture](architecture.md) and decision records define agreed constraints. Tasks describe scoped changes and link to these sources. [tasks.md](tasks.md) identifies the authoritative backlog. Resolve conflicts before dependent work; an implementation is not evidence that a requirement changed.
 
-## Lifecycle
+This document owns shared lifecycle, delivery gates, limits, and Git/backlog policies. Role procedures belong in the dedicated [PM](team/pm.md), [developer](team/software-engineer.md), [QA](team/qa-engineer.md), and [orchestrator](team/orchestrator.md) guides. Follow [testing guidelines](testing-guidelines.md) for verification and [execution policy](team/execution-policy.md) for shared runtime guidance.
+
+## Lifecycle and gates
 
 `Draft → Ready → In progress → In review → Done`
 
-Use `Blocked` when a task cannot proceed; record the reason, required input, and prior state. After resolution, return to the appropriate prior state. QA failure or an unmet requirement found by the orchestrator returns a task to `In progress`; changed requirements return it to `Draft` for review.
+| State | Entry condition |
+| --- | --- |
+| Draft | Task is being defined using the [task template](task-template.md). |
+| Ready | Goal, acceptance criteria, exclusions, constraints, and verification plan are complete; task dependencies are Done; blocking questions are resolved; PM scope review against the agreed specification is recorded. A task may deliver command configuration that does not exist yet. |
+| In progress | One Ready task is selected for implementation, or a reviewed task returns for fixes. Implement one task at a time. |
+| In review | Implementation and its handoff are ready for QA at an exact recorded state. |
+| Done | QA PASS covers the implementation state, integration and other required checks pass, documents match agreed behavior, material findings are resolved, and completion records are checked. |
 
-1. **Discover:** clarify users, outcomes, scope, constraints, and important failure cases in the plan. Ask focused questions rather than inventing product choices.
-2. **Design:** compare stack and architecture options, record the selection, and identify environment setup work. Refine the task labeled `environment-setup` and the application skeleton task so the developer installs and configures the environment before creating the runnable skeleton. Record intended commands now and validate them during those tasks. Keep these decisions separate from product requirements.
-3. **Prepare:** decompose work into small tasks with dependencies and requirement links. Groom each task before implementation.
-4. **Ready gate:** goal, acceptance criteria, exclusions, constraints, and verification plan are complete; dependencies are done; blocking questions are resolved; scope is reviewed by PM against the product scope agreed by the decision owner. From README step 4 onward, the orchestrator accepts this review without separate user approval for each task. Record that review in the task. A task may configure commands as its explicit deliverable.
-5. **Implement:** take one ready task, implement within its scope, run appropriate checks, and complete its handoff. Move it to `In review`; do not declare it done based only on implementation tests.
-6. **Verify:** check the result against every acceptance criterion and record reproducible evidence using the verification template. Prefer a fresh reviewer/session; record when the same assistant performs both roles. QA reports findings without modifying the implementation.
-7. **Complete:** all criteria pass, required checks pass, documents match the agreed behavior, and unresolved material findings are addressed. After QA PASS, the orchestrator re-checks the implementation against the task’s linked requirements and acceptance criteria, using evidence for the exact implementation state and running additional checks where needed. Record the re-check and evidence in the task handoff. Only the orchestrator marks it `Done`, after this re-check passes. If any in-scope requirement is unmet, return the task to `In progress` with reproducible findings for the developer, then repeat QA and the orchestrator re-check. Unverifiable requirements block completion. Merge according to the Git policy below; automatically continue only after integration succeeds.
+Use `Blocked` when work cannot proceed; record the reason, required input, and prior state. After resolution, return to the appropriate prior state. QA or integration failures return the task to `In progress`; changed requirements return it to `Draft`.
+
+## Delivery graph
+
+Discovery and architecture selection follow [README steps 1–3](../README.md#2-describe-the-application-you-want). After the user hands over delivery in README step 4, follow this graph using the linked role guides:
+
+```mermaid
+flowchart TD
+    O[Orchestrator selects task] --> P[PM grooming or valid grooming reuse]
+    P --> D[Developer sets up or implements]
+    D --> Q[QA task review]
+    Q -->|FAIL| D
+    Q -->|PASS| I[Merge and check integration]
+    I -->|FAIL| D
+    I -->|PASS| C[Orchestrator completes task]
+    C --> N{More release tasks?}
+    N -->|Yes| O
+    N -->|No| R[QA release review]
+    R -->|FAIL| F[Defect tasks]
+    F --> O
+    R -->|PASS| V{Orchestrator release requirements review}
+    V -->|FAIL| F
+    V -->|PASS| H[Delivery]
+```
+
+BLOCKED outcomes use the lifecycle rule above and [orchestrator routing](team/orchestrator.md#routing-and-completion). Final delivery requires all agreed release tasks Done, QA release PASS, and a passing orchestrator release requirements review at the delivered revision. See the respective [QA release procedure](team/qa-engineer.md#release-review) and [orchestrator release procedure](team/orchestrator.md#release-review-and-delivery).
 
 ## Changes and defects
 
-When scope changes, update the specification first, assess affected tasks and prior verification, and record significant decisions. Preserve requirement identifiers. A defect within agreed scope returns to the engineer with reproduction steps. New behavior becomes a separate task. Keep evidence tied to the verified revision; relevant code changes invalidate the affected verdicts.
-
-## Orchestrated delivery from README step 4
-
-Discovery and architecture selection remain user-guided (README steps 1–3). After the user hands over delivery in step 4, the orchestrator owns the following graph:
-
-1. PM creates dependency-ordered tasks, refines the task labeled `environment-setup` and the application skeleton task, and grooms the next eligible task.
-2. PM reviews readiness against agreed requirements and constraints, synchronizes task documents and any mapped issues, and commits grooming changes before handoff (`develop` for new tasks; the existing task branch for fixes). Record the full grooming commit hash. Escalate consequential uncertainty or scope changes; do not request routine per-task user approval.
-3. Developer implements one Ready task, including installation and configuration where required, runs applicable checks, and records an exact revision or working-tree handoff.
-4. QA verifies that implementation against every criterion and required check. PASS proceeds to the completion gate. FAIL returns findings to the developer, followed by fresh verification of the changed implementation. BLOCKED is routed to the developer for technical remediation, PM for product ambiguity, or the user for unavailable decisions/access.
-5. After QA PASS, the orchestrator re-checks the implementation against the task’s linked requirements and acceptance criteria and records evidence in the handoff. Unmet requirements return the task to In progress and the developer, followed by fresh QA and another orchestrator re-check. Unverifiable requirements block completion. Only after the re-check and all completion conditions pass does the orchestrator mark Done and automatically select the next eligible task.
-6. When release tasks are Done, QA checks the integrated application against complete product journeys and required regression checks. Failures become defect tasks and reenter the graph. Final delivery requires PASS against the delivered code state.
-
-Use separate PM, developer, and QA subagents when supported. Otherwise use explicit sequential role passes and record reduced reviewer independence. The orchestrator coordinates rather than replacing a missing QA verdict with its own assertion. Dependent work remains sequential; parallel work requires independent tasks and isolated changes, followed by integration verification.
+When scope changes, update the specification first, assess affected tasks and prior verification, and record significant decisions. Preserve requirement identifiers. Defects within agreed scope need reproducible findings; new behavior becomes a separate task. Apply the [evidence reuse rules](testing-guidelines.md#reusing-evidence) to changed implementations.
 
 ## Autonomy and limits
 
-Handle routine reversible choices, grooming, handoffs, fixes, and task-state updates without prompting the user. Respect agreed architecture, requirements, and dependency constraints. Ask only about consequential uncertainty, changes outside agreed scope or architecture, missing access/credentials, required authorization, or exhausted limits. Continue other eligible work when a task is blocked. Do not repeat already answered questions or expand scope silently.
+During handed-over delivery, routine reversible choices, grooming, handoffs, fixes, local delivery commits, and state updates need no per-task user approval. Escalate consequential uncertainty, changes outside agreed scope or architecture, missing access/credentials, required authorization, or exhausted limits. Honor user cost/time limits and tool restrictions. A goal command does not grant additional permissions or guarantee continuation.
 
-Default limits are three developer-to-QA attempts per task and ten task completions per delivery batch, unless the user specifies alternatives. Each implementation handoff submitted to QA consumes an attempt. Session changes and batch renewal do not reset task retry counts; obtain an explicit extension before exceeding them. Honor additional user time/cost limits and tool restrictions. Do not assume a tool-specific goal command or automatic continuation is available.
-
-Stop at verified completion, an execution limit, or no eligible work. Record a delivery checkpoint in `_docs/tasks.md` after handoffs and before stopping: agreed task set, current role/task, exact implementation state, per-task attempt counts, batch completions, evidence links, blockers, and next routing action. Keep detailed findings in linked task handoffs and verification records. On resume, read these records and reverify evidence invalidated by intervening changes.
-
-Role guides in `_docs/team/` describe responsibilities; they do not themselves launch an agent runtime. Local delivery commits and merges follow the Git policy below. Pushes, other external actions, and deployment remain subject to the user's authorization.
+Default limits are three developer-to-QA attempts per task and ten task completions per delivery batch unless overridden. Each implementation handoff submitted to QA consumes an attempt. Session changes and batch renewal do not reset task retry counts; exceeding them requires an explicit extension. Stop at verified completion, an execution limit, or no eligible work. Checkpoint and resume procedures belong to the [orchestrator](team/orchestrator.md#checkpoints-and-resumption).
 
 ## Branching, commits, merges, and pushes
 
-This default applies to application delivery after README step 4. Explicit user instructions take precedence. Template maintenance remains uncommitted unless requested.
+This policy applies to application delivery after README step 4. For maintenance and other work, follow [AGENTS.md](../AGENTS.md).
 
-- Use `develop` as the delivery branch and record it in `_docs/tasks.md`. If it does not exist, the orchestrator creates it from the existing project default branch before task work begins; ask only if that starting point is ambiguous. Record any user-authorized push remote and branch targets. Missing push authorization does not block local delivery.
-- After each grooming pass, PM commits the resulting specification, task, and backlog changes on `develop` before handing off, including when the task remains Draft or Blocked. Synchronize any mapped GitHub issues under the policy below and record pending synchronization when it fails. Use a concise commit message identifying the task or grooming scope; stage only relevant changes and preserve unrelated work. Record the full grooming commit hash in the handoff. No per-commit user approval is needed within agreed delivery scope. If grooming an existing task branch for a fix, commit there and have the developer continue from that commit; do not change implementation during the PM pass.
-- The developer creates one branch per task from the current `develop` branch, named `task/<task-id>-<short-title>` (for example, `task/003-short-title` or `task/environment-setup`). Reuse that branch for fixes. Use isolated worktrees when needed; preserve unrelated changes and never include them in task commits.
-- The developer commits implementation and fixes on the task branch with concise messages identifying the task and change. Run applicable checks before handoff and record the branch and full commit hash. No per-commit user approval is needed within agreed delivery scope.
-- QA verifies the recorded implementation commit. The orchestrator re-checks that same commit against requirements before marking Done. Implementation changes require a new commit and fresh affected verification. Evidence and status-only commits may follow; record both the verified implementation commit and final branch tip, and ensure these later commits contain no implementation changes.
-- After the re-check passes, the orchestrator records Done, commits the completion records, and merges the task branch into `develop`. Prefer a fast-forward when possible; otherwise preserve history with a merge commit. Run applicable integration checks on the resulting delivery state before selecting dependent work. If integration changes implementation, conflicts require fixes, or checks fail, return the task to In progress and the developer, followed by fresh QA and orchestrator re-check. Record the final merge/delivery commit and evidence.
-- Push automatically only when the user has authorized the remote and target branches, and only within that authorization. A delivery handover alone does not authorize pushes. Existing authorization persists until changed; do not ask again for each permitted push. Without it, retain local commits and report that they have not been pushed. A push failure does not invalidate local verification; record the pending push separately.
-- Do not force push, rewrite published history, delete remote branches, or perform destructive Git operations without explicit authorization. Preserve task branches by default. Do not bypass repository protections or required checks.
+Use `develop` as the delivery branch. Follow the role guides for [grooming commits](team/pm.md#grooming-and-handoff), [implementation branches and commits](team/software-engineer.md#implementation-and-handoff), and [integration](team/orchestrator.md#routing-and-completion).
 
-A task is ready for dependent work only when its verified implementation has been integrated successfully. Record task branch, verified implementation commit, final branch tip, delivery commit, integration results, and push status in its handoff. Final release QA verifies the recorded integrated delivery commit.
+Handoffs identify the branch and full commit hash. Keep the implementation commit immutable during QA. Evidence/status-only commits may follow, with the verified implementation commit and final branch tip recorded separately. Do not create commits solely to insert their own hashes; record the delivery hash in the next normal checkpoint. Implementation changes require a new commit and affected verification under the testing guidelines.
+
+Push only to user-authorized remotes and branch targets; delivery handover alone does not authorize pushes. Preserve authorization across sessions. Without it, retain local commits and report pending pushes. A push failure does not invalidate local verification. Force pushes, published-history rewriting, remote branch deletion, and destructive Git operations require explicit authorization. Preserve task branches by default; never bypass protections or required checks.
 
 ## GitHub issue synchronization
 
-After product scope confirmation in README step 2, inspect the Git remote named `origin`. Enable issue synchronization only when that remote identifies a GitHub repository (HTTPS or SSH, including an SSH alias whose configuration resolves to GitHub). Do not infer this from another remote. If `origin` is absent, is not GitHub, or cannot be identified confidently, keep the local backlog and do not create GitHub issues. Record the selected mode and repository in `_docs/tasks.md`. Re-check before external writes if the remote changes.
+After product scope confirmation, select backlog mode from the Git remote named `origin`. Enable GitHub mode only for a confidently identified GitHub repository, including an SSH alias resolving to GitHub. Otherwise use the local backlog. Record the mode/repository in [tasks.md](tasks.md) and re-check before external writes if the remote changes.
 
-For GitHub mode, the user's delivery instruction authorizes task issue creation and updates in that origin repository. It does not authorize pushes or unrelated external actions. Use available GitHub tooling and authenticated access; if access is unavailable, record pending synchronization and request only the missing access. Never report an unsynchronized update as complete.
+In GitHub mode, the user's delivery instruction authorizes task issue creation and updates in that origin repository. It does not authorize pushes or unrelated external actions. Use authenticated tooling; unavailable access leaves synchronization pending and requires only the missing access.
 
-- PM extracts concrete, agreed tasks from `_docs/plan.md` and creates one issue per task, preserving requirement IDs and links to the plan. The plan remains the product specification; do not move requirements out of it or treat every requirement as a separate implementation task. Do not publish placeholders or unresolved discovery questions as tasks. Architecture-dependent tasks stay Draft until refined after architecture selection.
-- Include bootstrap and later feature/defect tasks as they are prepared. Use `_docs/task-template.md` for both issue content and local task files. Preserve task IDs and labels, including `environment-setup`. Record issue URL/number in each task file and link it in `_docs/tasks.md`; link the local task path in the issue. Find existing mapped issues before creating new ones to avoid duplicates.
-- GitHub issues are authoritative for task scope and status. Local task files mirror that content; `_docs/tasks.md` is an index and delivery checkpoint, not a second independently managed backlog. Read issue changes before grooming or implementation and at every handoff. If issue edits conflict with the agreed specification or concurrent local changes, resolve the conflict before dependent work; never silently overwrite either version or accept unapproved scope changes.
-- The acting role updates task content, criteria, dependencies, findings, evidence, and status in both places at each handoff. The orchestrator reconciles them before selecting the next task and before stopping. Keep explicit lifecycle status in the issue body: Draft, Ready, In progress, In review, Blocked, or Done. Keep issues open until completion and integration into `develop` succeed; then close with verification and delivery commit links. Reopen if the task returns to In progress.
-- When synchronization fails, preserve local changes and record the issue, pending updates, error, and next action in `_docs/tasks.md`. Reconcile before further dependent work; continue unrelated eligible work when possible. Do not create replacement issues merely because an update failed.
+- GitHub issues own task scope and status; local task files mirror them and `tasks.md` is the index/checkpoint. In local mode, the linked Markdown backlog remains authoritative.
+- Use the [task template](task-template.md) for issue content and local task files. Preserve IDs and labels, record the issue URL in the task/index, and link the local task path from the issue.
+- Read issue changes before grooming, implementation, and each handoff. Resolve conflicts with specifications or concurrent local edits before dependent work; never silently overwrite either version or accept unapproved scope changes.
+- At handoffs, the acting role updates content, criteria, dependencies, findings, evidence, and explicit lifecycle status in both places. Keep issues open until completion and integration succeed; then close with verification and delivery commit links. Reopen if work returns to In progress.
+- On synchronization failure, preserve local changes and record the issue, pending updates, error, and next action in `tasks.md`. Reconcile before dependent work; unrelated eligible work may continue. Never create replacement issues merely because an update failed.
 
-For non-GitHub origins, local task files and `_docs/tasks.md` remain authoritative and no GitHub synchronization runs.
+Issue creation belongs to [PM](team/pm.md#backlog-preparation); delivery reconciliation belongs to the [orchestrator](team/orchestrator.md#routing-and-completion).

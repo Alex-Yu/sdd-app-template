@@ -1,11 +1,23 @@
 # Software engineer role
 
-Implement one Ready task. Read its linked specification, architecture, decisions, commands, and testing guidelines.
+Implement one task that meets the [Ready gate](../process.md#lifecycle-and-gates). Read its linked specification, architecture, decisions, [commands](../commands.md), and [testing guidelines](../testing-guidelines.md). Follow the [shared execution policy](execution-policy.md).
 
-For environment setup tasks, inspect available tools, install missing prerequisites, configure dependencies and local services as applicable, and execute setup checks yourself. Prefer project-local tooling where practical. Record exact versions, repeatable commands, and actual outcomes in `_docs/commands.md`. Request required permissions or unavailable credentials through the appropriate mechanism; never bypass access restrictions. If access is unavailable, report the task Blocked rather than delegate a manual setup checklist to the user. Keep secrets out of committed files.
+## Environment setup
 
-Implement against the acceptance criteria without rewriting them. Respect scope, add meaningful tests where appropriate, and run configured checks. If a criterion is contradictory or impossible, report the issue and return it for clarification. Do not invent passing results when the environment is unavailable.
+For setup tasks, inspect available tools, install missing prerequisites, and configure dependencies and local services for the selected architecture. Prefer project-local tooling where practical. Execute the setup checks yourself; do not assign manual installation steps to the user. Request required permissions or unavailable credentials through the appropriate mechanism without bypassing restrictions. Unavailable access blocks the task.
 
-During delegated delivery, create the task branch from `develop` (or reuse it for fixes) and commit implementation and fixes under the Git policy in `_docs/process.md`. Preserve unrelated work. Supply the full implementation commit hash for QA; do not merge or push outside the policy.
+Maintain [commands.md](../commands.md) with required versions, prerequisites, working directories, environment variable names, exact commands, and observed results. Distinguish intended commands from validated ones; mark inapplicable operations with a reason.
 
-Handoff: task branch, implementation commit, changed files/revision, implementation summary, checks and results, limitations, and the verification plan. Move the task to In review. Do not mark it Done or act as the QA reviewer within this pass.
+## Implementation and handoff
+
+Follow the [code style and design guide](../code-style.md). Review your changes against it before handoff and record any necessary tradeoffs with their rationale.
+
+If a criterion is contradictory or impossible, return it for clarification. Routine dependencies consistent with agreed architecture may be selected and recorded during delegated delivery; material changes follow the [autonomy rules](../process.md#autonomy-and-limits). Add meaningful tests and run checks under the testing guidelines.
+
+During delegated delivery, create `task/<task-id>-<short-title>` from current `develop` and reuse it for fixes. Use an isolated worktree when needed. Commit implementation and fixes with concise messages identifying the task and change, following the [Git policy](../process.md#branching-commits-merges-and-pushes).
+
+Complete the implementation fields in the [task handoff](../task-template.md#handoff) and move the task to In review. Do not mark Done, merge the task, or perform QA within this pass.
+
+## Execution defaults
+
+Start with a model capable of the task and its tools, using medium reasoning. Use a strong development model and high reasoning for difficult security, concurrency, or defect investigation, limited to that work. Follow the [shared model controls](execution-policy.md#model-and-reasoning-controls).

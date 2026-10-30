@@ -31,10 +31,12 @@ Give each criterion a stable ID. Define quality thresholds explicitly when relev
 
 ## Questions and assumptions
 
-<Record unresolved questions, answers, and minor assumptions. Resolve blocking questions before Ready.>
+<Record unresolved questions, answers, and minor assumptions.>
 
 ## Handoff
 
+- PM scope review / grooming branch and commit: Pending
+- Readiness evidence / reused grooming reference: Pending
 - Implementation summary: Pending
 - Task branch / verified implementation commit: Pending
 - Changed files / revision: Pending
@@ -42,5 +44,5 @@ Give each criterion a stable ID. Define quality thresholds explicitly when relev
 - Push status / authorized remote and branch targets: Pending
 - Checks and results: Pending
 - Verification record: Pending
-- Orchestrator requirements re-check / evidence / outcome: Pending
+- Completion review / outcome: Pending
 - Remaining risks or blockers: Pending
